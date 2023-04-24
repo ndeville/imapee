@@ -29,7 +29,6 @@ count = 0
 # IMPORTS
 
 import my_utils
-import re
 
 # GLOBALS
 
@@ -44,27 +43,15 @@ EMAIL_REGEX = r"[a-z0-9\.\-+_]+@[a-z0-9\.\-+_]+\.[a-z]+"
 
 set_emails = set() 
 
-emails = [] # List of Email objects
-
 set_emails_dne = set() # Set of dicts: {email: , src:, first: }
 set_new_emails = set()
 set_email_checked = set()
 added_to_WN_contacts = []
 updated_in_WN001 = []
 
-mail_error_prefixes = (
+mail_error_prefixes = [
     'mailer-daemon',
-)
-
-blacklist_prefix = (
-    'noreply',
-    'no-reply',
-    'no_reply',
-    'no.reply',
-    'notify',
-    'thehubspotteam',
-    'analytics-',
-)
+]
 
 safe_domains = (
     'dryfta.com',
@@ -80,47 +67,6 @@ count_deleted = 0
 
 
 # CLASSES
-
-
-class Email:
-    def __init__(
-        self,
-        uid,
-        from_,
-        flags,
-        date_str,
-        date,
-        from_values_name,
-        from_values_email,
-        subject,
-        text,
-        cc,
-    ):
-        self.uid = uid
-        self.from_ = from_
-        self.flags = flags
-        self.date_str = date_str
-        self.date = date
-        self.from_values_name = from_values_name
-        self.from_values_email = from_values_email.lower()
-        self.subject = subject
-        self.text = text
-        self.cc = cc
-
-    def __str__(self):
-        return (
-            f"uid:{' ' * (15 - len('uid'))}\t{self.uid}\n"
-            f"from_:{' ' * (15 - len('from_'))}\t{self.from_}\n"
-            f"flags:{' ' * (15 - len('flags'))}\t{', '.join(self.flags)}\n"
-            f"date_str:{' ' * (15 - len('date_str'))}\t{self.date_str}\n"
-            f"date:{' ' * (15 - len('date'))}\t{self.date}\n"
-            f"from_values_name:{' ' * (15 - len('from_values_name'))}\t{self.from_values_name}\n"
-            f"from_values_email:{' ' * (15 - len('from_values_email'))}\t{self.from_values_email}\n"
-            f"subject:{' ' * (15 - len('subject'))}\t{self.subject}\n"
-            f"cc:{' ' * (15 - len('cc'))}\t{', '.join(str(email_addr.email) for email_addr in self.cc)}\n"
-            f"text:{' ' * (15 - len('text'))}\t(edited out)\n"
-        )
-
 
 
 
@@ -147,7 +93,6 @@ def process(v=False):
     global added_to_WN_contacts
     global updated_in_WN001
     global list_emails_errors
-    global emails
 
 
     with MailBox(EMAIL_SERVER).login(EMAIL_ACCOUNT, PASSWORD) as mailbox:
@@ -167,32 +112,19 @@ def process(v=False):
 
             count += 1
 
-            # if v:
-            #     print('---------------')
-            #     print('msg.uid', type(msg.uid), '------', msg.uid)
-            #     print('msg.from_', type(msg.from_), '------', msg.from_)
-            #     # print('msg.to', type(msg.to), '------', msg.to)
-            #     print('msg.flags', type(msg.flags), '------', msg.flags)
-            #     print('msg.date_str', type(msg.date_str), '------', msg.date_str)
-            #     print('msg.date', type(msg.date), '------', msg.date)
-            # #     print('msg.from_values', type(msg.from_values), '------', msg.from_values)
-            #     print('msg.from_values_name', type(msg.from_values.name), '------', msg.from_values.name)
-            #     print('msg.from_values_email', type(msg.from_values.email), '------', msg.from_values.email)
-            #     print('msg.subject', type(msg.subject), '------', msg.subject)
-            #     print()
-
-
-            # email_obj = Email(
-            #     uid=msg.uid,
-            #     from_=msg.from_,
-            #     flags=msg.flags,
-            #     date_str=msg.date_str,
-            #     date=msg.date,
-            #     from_values_name=msg.from_values.name,
-            #     from_values_email=msg.from_values.email,
-            #     subject=msg.subject,
-            #     text=msg.text
-            # )
+            if v:
+                print('---------------')
+                print('msg.uid', type(msg.uid), '------', msg.uid)
+                print('msg.from_', type(msg.from_), '------', msg.from_)
+                # print('msg.to', type(msg.to), '------', msg.to)
+                print('msg.flags', type(msg.flags), '------', msg.flags)
+                print('msg.date_str', type(msg.date_str), '------', msg.date_str)
+                print('msg.date', type(msg.date), '------', msg.date)
+            #     print('msg.from_values', type(msg.from_values), '------', msg.from_values)
+                print('msg.from_values_name', type(msg.from_values.name), '------', msg.from_values.name)
+                print('msg.from_values_email', type(msg.from_values.email), '------', msg.from_values.email)
+                print('msg.subject', type(msg.subject), '------', msg.subject)
+                print()
 
             ## Get email From sender 
             # email_sender = msg.from_values.email.strip().lower()
@@ -295,104 +227,25 @@ def process(v=False):
                     # Mark Error Email as Read
                     if not __name__ == '__main__':
                         mailbox.flag(msg.uid, MailMessageFlags.SEEN, True)
-
-
-            email_obj = Email(
-                    uid=msg.uid,
-                    from_=msg.from_,
-                    flags=msg.flags,
-                    date_str=msg.date_str,
-                    date=msg.date,
-                    from_values_name=msg.from_values.name,
-                    from_values_email=msg.from_values.email,
-                    subject=msg.subject,
-                    text=msg.text,
-                    cc=msg.cc_values,
-                )
-            
-            emails.append(email_obj)
     
     # Dedupe
     list_emails_errors = list(set(list_emails_errors))
 
-    # return list_emails_errors
-    return emails
+    return list_emails_errors
 
         # DB updates
 
         # if 'automat' in subject.lower():
 
-
-
 def get_list_emails_errors():
-    # process() # TODO extract out to be called only once when importing script
+    process() # TODO extract out to be called only once when importing script
     return list(set(list_emails_errors))
-
-
-def get_all_emails(v=False):
-    if v:
-        for count_e, email in enumerate(emails):
-            print(f"\n\n======= {count_e + 1} =======")
-            print(email)
-    return emails
-
-def get_all_from_emails():
-    return list(set([email.from_.lower() for email in emails]))
-
-
-def get_dict_from_emails_with_date_and_message(v=True):
-
-    email_list = emails
-
-    email_dict = {}
-    
-    for email_obj in email_list:
-        email = email_obj.from_values_email
-        subject = email_obj.subject.lower()
-
-
-        if (not email.startswith(blacklist_prefix)) and (not email.startswith(mail_error_prefixes)) and (not email.endswith(safe_domains)):
-
-            if 'auto' not in subject:
-        
-                # Format email text
-                text = email_obj.text[:200].strip()
-                if '\n' in text:
-                    text = text.replace('\n', ' ')
-                if '\r' in text:
-                    text = text.replace('\r', ' ')
-                text = re.sub(' +', ' ', text)
-                
-                # Check if the email is already in the dictionary
-                if email in email_dict:
-                    # Update the date if the current email is older
-                    if email_obj.date < email_dict[email][0]:
-                        email_dict[email] = (email_obj.date, text, subject)
-                else:
-                    email_dict[email] = (email_obj.date, text, subject)
-
-    return email_dict
-
-
-def get_automated_replies():
-    # TODO expand on logic
-    return [email for email in emails if 'auto' in email.subject.lower()]
 
 
 # MAIN
 
-# Load all Emails in `emails` list
-process()
 
-# get_all_emails()
 
-# emails_dict = get_dict_from_emails_with_date_and_message()
-
-# for k,v in emails_dict.items():
-#     print(f"\n\n========= {k}")
-#     print(v[0])
-#     print(repr(v[1]))
-#     print(f"\nsubject: {v[2]}")
 
 
 
@@ -403,10 +256,10 @@ process()
 
 if __name__ == '__main__':
 
-    # process(v=True)
-    # print(f"\nlist_emails_errors:")
-    # for i, email_error in enumerate(list_emails_errors):
-    #     print(i+1, email_error)
+    process(v=True)
+    print(f"\nlist_emails_errors:")
+    for i, email_error in enumerate(list_emails_errors):
+        print(i+1, email_error)
 
     print()
     print('-------------------------------')
