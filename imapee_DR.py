@@ -54,6 +54,10 @@ updated_in_WN001 = []
 
 mail_error_prefixes = (
     'mailer-daemon',
+    'no-reply@tmes.trendmicro.eu', # Undelivered Mail
+    'noreply@esa4.umd.iphmx.com', # Undelivered Mail
+    'postmasters@uci.edu', # Undelivered Mail
+    'postmaster', # Undelivered Mail
 )
 
 blacklist_prefix = (
@@ -361,7 +365,30 @@ def get_dict_from_emails_with_date_and_message(v=True):
                     text = text.replace('\n', ' ')
                 if '\r' in text:
                     text = text.replace('\r', ' ')
+                # Remove extra spaces
                 text = re.sub(' +', ' ', text)
+                # Remove original email
+                if 'From:' in text:
+                    text = text.split('From:')[0]
+                # Remove intro
+                if 'Hi Nicolas,' in text:
+                    text = text.split('Hi Nicolas,')[1]
+                if 'Hello Nicolas,' in text:
+                    text = text.split('Hello Nicolas,')[1]
+                if 'Dear Nicolas,' in text:
+                    text = text.split('Dear Nicolas,')[1]
+                if 'Dear Nic,' in text:
+                    text = text.split('Dear Nic,')[1]
+
+                # Remove signature
+                if 'Best' in text:
+                    text = text.split('Best,')[0]
+                if 'Thanks,' in text:
+                    text = text.split('Thanks,')[0]
+                if 'Regards,' in text:
+                    text = text.split('Regards,')[0]
+                if 'Kind' in text:
+                    text = text.split('Kind')[0]
                 
                 # Check if the email is already in the dictionary
                 if email in email_dict:
