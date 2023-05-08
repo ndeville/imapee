@@ -30,6 +30,8 @@ count = 0
 
 import my_utils
 import re
+from tqdm import tqdm
+
 
 # GLOBALS
 
@@ -157,7 +159,7 @@ def process(v=False):
     with MailBox(EMAIL_SERVER).login(EMAIL_ACCOUNT, PASSWORD) as mailbox:
 
         # for msg in mailbox.fetch(AND(from_='Mail Delivery'), mark_seen=False): # example with search string
-        for msg in mailbox.fetch(mark_seen=False, reverse=False, bulk=True): # get all emails from most recent without changing read status
+        for msg in tqdm(mailbox.fetch(mark_seen=False, reverse=False, bulk=True)): # get all emails from most recent without changing read status
 
         ### REFERENCE
         # criteria = ‘ALL’, message search criteria, query builder
