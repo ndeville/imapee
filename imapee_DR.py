@@ -373,24 +373,34 @@ def get_dict_from_emails_with_date_and_message(v=True):
                 if 'From:' in text:
                     text = text.split('From:')[0]
                 # Remove intro
-                if 'Hi Nicolas,' in text:
-                    text = text.split('Hi Nicolas,')[1]
-                if 'Hello Nicolas,' in text:
-                    text = text.split('Hello Nicolas,')[1]
-                if 'Dear Nicolas,' in text:
-                    text = text.split('Dear Nicolas,')[1]
-                if 'Dear Nic,' in text:
-                    text = text.split('Dear Nic,')[1]
+
+                intros = [
+                    'Hi Nicolas,',
+                    'Hello Nicolas,',
+                    'Dear Nicolas,',
+                    'Dear Nic,',
+                    'Thank you Nicolas',
+                    'Thank you, Nicholas',
+                    'Thank you Nicholas',
+                ]
+
+                for intro in intros:
+                    if intro in text:
+                        text = text.split(intro)[1]
+
 
                 # Remove signature
-                if 'Best' in text:
-                    text = text.split('Best,')[0]
-                if 'Thanks,' in text:
-                    text = text.split('Thanks,')[0]
-                if 'Regards,' in text:
-                    text = text.split('Regards,')[0]
-                if 'Kind' in text:
-                    text = text.split('Kind')[0]
+
+                outros = [
+                    'Best,',
+                    'Thanks,',
+                    'Regards,',
+                    'Kind',
+                ]
+
+                for outro in outros:
+                    if outro in text:
+                        text = text.split(outro)[0]
                 
                 # Check if the email is already in the dictionary
                 if email in email_dict:
