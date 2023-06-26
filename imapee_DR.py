@@ -382,6 +382,10 @@ def get_dict_from_emails_with_date_and_message(v=True):
                     'Thank you Nicolas',
                     'Thank you, Nicholas',
                     'Thank you Nicholas',
+                    'Hi Nic,',
+                    'Good morning Nicole,',
+                    'Good morning Nic, ',
+                    'Good morning Nicolas, ',
                 ]
 
                 for intro in intros:
