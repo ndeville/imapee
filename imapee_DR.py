@@ -206,7 +206,7 @@ def process(v=False):
             if email_sender != False:
                 if v:
                     print('email_sender', type(email_sender), '------', email_sender)
-                set_emails.add(email_sender)
+                set_emails.add(email_sender.lower().strip())
             else:
                 print(f"❌ EMAIL FORMAT ERROR: email_sender is not valid: {email_sender}")
             
@@ -220,7 +220,7 @@ def process(v=False):
                         if my_utils.validate_email_format(email_cc):
                             if v:
                                 print('email_cc', type(email_cc), '------', email_cc)
-                            set_emails.add(email_cc)
+                            set_emails.add(email_cc.lower().strip())
                     else:
                         if v:
                             print(f"❌ EMAIL FORMAT ERROR: email_cc is not valid: {email_cc}")
@@ -239,7 +239,7 @@ def process(v=False):
                     # if my_utils.validate_email_format(new_email_from_html):
                     if v:
                         print('new_email_from_html', type(new_email_from_html), '------', new_email_from_html)
-                    set_emails.add(new_email_from_html)
+                    set_emails.add(new_email_from_html.lower().strip())
                 else:
                     if v:
                         print(f"❌ EMAIL FORMAT ERROR: new_email_from_html is not valid: {new_email_from_html}")
@@ -253,7 +253,7 @@ def process(v=False):
                     # if my_utils.validate_email_format(new_email_from_text):
                     if v:
                         print('new_email_from_text', type(new_email_from_text), '------', new_email_from_text)
-                    set_emails.add(new_email_from_text)
+                    set_emails.add(new_email_from_text.lower().strip())
                 else:
                     if v:
                         print(f"❌ EMAIL FORMAT ERROR: new_email_from_text is not valid: {new_email_from_text}")
@@ -325,7 +325,7 @@ def process(v=False):
     return emails
 
         # DB updates
-
+        # TODO
         # if 'automat' in subject.lower():
 
 
@@ -427,29 +427,11 @@ def get_automated_replies():
 # Load all Emails in `emails` list
 process()
 
-# get_all_emails()
 
-# emails_dict = get_dict_from_emails_with_date_and_message()
-
-# for k,v in emails_dict.items():
-#     print(f"\n\n========= {k}")
-#     print(v[0])
-#     print(repr(v[1]))
-#     print(f"\nsubject: {v[2]}")
-
-
-
-# print(f"\n\n\nSET EMAILS: {len(set_emails)}\n")
-# pp.pprint(set_emails)
 
 ########################################################################################################
 
 if __name__ == '__main__':
-
-    # process(v=True)
-    # print(f"\nlist_emails_errors:")
-    # for i, email_error in enumerate(list_emails_errors):
-    #     print(i+1, email_error)
 
     print()
     print('-------------------------------')
