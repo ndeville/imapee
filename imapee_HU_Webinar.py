@@ -1,3 +1,8 @@
+"""
+SCRIPT for webinar_platform@hubilo.cloud
+to get webinar vendors
+"""
+
 from datetime import datetime
 print(f"Starting at {datetime.now().strftime('%H:%M:%S')}")
 ts_db = f"{datetime.now().strftime('%Y-%m-%d-%H-%M')}"
@@ -42,17 +47,16 @@ from urllib.parse import urlparse
 
 # GLOBALS
 
-test = 0
-v = 0
+test = 1
+v = 1
 delete = 0
 
 if not test:
     import backup_db
 
-
-EMAIL_ACCOUNT = os.getenv("EMAIL_ACCOUNT_INBOX")
-PASSWORD = os.getenv("PASSWORD_INBOX")
-EMAIL_SERVER= os.getenv("EMAIL_SERVER_INBOX")
+EMAIL_ACCOUNT = os.getenv("EMAIL_ACCOUNT_WEBINAR_HUBILO_CLOUD")
+PASSWORD = os.getenv("PASSWORD_WEBINAR_HUBILO_CLOUD")
+EMAIL_SERVER= os.getenv("EMAIL_SERVER_WEBINAR_HUBILO_CLOUD")
 
 EMAIL_REGEX1 = r"""(?:[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*|"(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21\x23-\x5b\x5d-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])*")@(?:(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?|\[(?:(?:(2(5[0-5]|[0-4][0-9])|1[0-9][0-9]|[1-9]?[0-9]))\.){3}(?:(2(5[0-5]|[0-4][0-9])|1[0-9][0-9]|[1-9]?[0-9])|[a-z0-9-]*[a-z0-9]:(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21-\x5a\x53-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])+)\])"""
 EMAIL_REGEX = r"[a-z0-9\.\-+_]+@[a-z0-9\.\-+_]+\.[a-z]+"
@@ -97,6 +101,13 @@ safe_domains = (
     'skoolsonline.com',
     'webinar.net',
 )
+
+blacklist_emails = [
+    'support@google.com',
+    'report@microsoft.com',
+    '@amazonses.com',
+    'postmaster',
+]
 
 list_emails_errors = []
 
@@ -203,7 +214,7 @@ def extract_urls_with_domain(html_code):
 
 
 
-def process(v=False):
+def process():
     global count_total
     global count
     global count_processed
@@ -220,6 +231,9 @@ def process(v=False):
     global emails
     global count_records_created
     global existing_emails
+    global blacklist_emails
+    
+    v = True
 
     delete_uids = []
 
@@ -258,13 +272,15 @@ def process(v=False):
 
                     if len(vendors_in_email) > 0:
 
-                        # print(f"\n{count} - subject: {msg.subject}")
+                        if v:
+                            print(f"\n{count} - subject: {msg.subject}")
 
                         for vendor in vendors_in_email:
 
                             count += 1    
 
-                            # print(f"\n✅\t{vendor.domain} used by {email_sender_domain} with URL: {vendor.url}")
+                            if v:
+                                print(f"\n✅\t{vendor.domain} used by {email_sender_domain} with URL: {vendor.url}")
 
                             if not test:
 
@@ -314,11 +330,9 @@ def process(v=False):
 
                 # Add email to DB
 
-                
+                if email_sender not in existing_emails and not any(blacklist_element in email_sender for blacklist_element in blacklist_emails):
 
-                if not test:
-
-                    if email_sender not in existing_emails:
+                    if not test:
 
                         try:
                             create_record(DB_BTOB, 'people', {
@@ -330,11 +344,18 @@ def process(v=False):
 
                             count_records_created += 1
 
-                            existing_emails.append(email_sender)
+                            
 
                         except:
                             # print(f"\n❌ {email_sender} already in DB")
                             continue
+                    
+                    else:
+
+                        print(f"\nℹ️  \t{email_sender} to be added to DB")
+
+                    existing_emails.append(email_sender)
+
 
             email_obj = Email(
                     uid=msg.uid,

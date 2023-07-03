@@ -208,7 +208,7 @@ def process(v=False):
                     print('email_sender', type(email_sender), '------', email_sender)
                 set_emails.add(email_sender.lower().strip())
             else:
-                print(f"❌ EMAIL FORMAT ERROR: email_sender is not valid: {email_sender}")
+                print(f"\n❌ EMAIL FORMAT ERROR: email_sender is not valid: {email_sender} with subject: {msg.subject}")
             
             ## Get email from Cc
             emails_cc = msg.cc_values
@@ -223,7 +223,7 @@ def process(v=False):
                             set_emails.add(email_cc.lower().strip())
                     else:
                         if v:
-                            print(f"❌ EMAIL FORMAT ERROR: email_cc is not valid: {email_cc}")
+                            print(f"\n❌ EMAIL FORMAT ERROR: email_cc is not valid: {email_cc}")
 
             # print('msg.text', type(msg.text), '------', msg.text)
             # print('msg.html', type(msg.html), '------', msg.html)
@@ -242,7 +242,7 @@ def process(v=False):
                     set_emails.add(new_email_from_html.lower().strip())
                 else:
                     if v:
-                        print(f"❌ EMAIL FORMAT ERROR: new_email_from_html is not valid: {new_email_from_html}")
+                        print(f"\n❌ EMAIL FORMAT ERROR: new_email_from_html is not valid: {new_email_from_html}")
 
             ## Get emails in Text Body
             for re_match in re.finditer(EMAIL_REGEX, msg.text.lower()):
@@ -256,10 +256,11 @@ def process(v=False):
                     set_emails.add(new_email_from_text.lower().strip())
                 else:
                     if v:
-                        print(f"❌ EMAIL FORMAT ERROR: new_email_from_text is not valid: {new_email_from_text}")
+                        print(f"\n❌ EMAIL FORMAT ERROR: new_email_from_text is not valid: {new_email_from_text}")
 
             # MAIL ERRORS
             for error_prefix in mail_error_prefixes:
+                
                 if error_prefix in msg.from_.lower():
 
                     count_errors += 1
