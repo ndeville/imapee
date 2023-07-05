@@ -47,12 +47,12 @@ from urllib.parse import urlparse
 
 # GLOBALS
 
-test = 1
+test = 0
 v = 1
 delete = 0
 
-if not test:
-    import backup_db
+# if not test:
+#     import backup_db
 
 EMAIL_ACCOUNT = os.getenv("EMAIL_ACCOUNT_WEBINAR_HUBILO_CLOUD")
 PASSWORD = os.getenv("PASSWORD_WEBINAR_HUBILO_CLOUD")
@@ -87,6 +87,7 @@ blacklist_prefix = (
     'notify',
     'thehubspotteam',
     'analytics-',
+    'mailer-daemon',
 )
 
 blacklist_url = [
@@ -107,6 +108,7 @@ blacklist_emails = [
     'report@microsoft.com',
     '@amazonses.com',
     'postmaster',
+    'mailer-daemon',
 ]
 
 list_emails_errors = []
@@ -260,6 +262,9 @@ def process():
             # email_sender = msg.from_values.email.strip().lower()
             email_sender = my_utils.validate_email_format(msg.from_values.email.strip().lower())
 
+            if v:
+                print(f"\n{count_processed} - email_sender: {email_sender}")
+
             if type(email_sender) == str:
 
                 email_sender_domain = my_utils.domain_from_email(email_sender)
@@ -302,7 +307,7 @@ def process():
                                         count_records_created += 1
 
                                     except:
-                                        # print(f"\n❌ using_vendor: {email_sender_domain}-{vendor.domain} already in DB")
+                                        print(f"\n❌ using_vendor: {email_sender_domain}-{vendor.domain} already in DB")
                                         continue
 
                                     # ADD to webinar table
@@ -320,7 +325,7 @@ def process():
                                         count_records_created += 1
 
                                     except:
-                                        # print(f"\n❌ webinar {vendor.url} already in DB")
+                                        print(f"\n❌ webinar {vendor.url} already in DB")
                                         continue
 
                                     uids.add(uid)
@@ -347,7 +352,7 @@ def process():
                             
 
                         except:
-                            # print(f"\n❌ {email_sender} already in DB")
+                            print(f"\n❌ {email_sender} already in DB")
                             continue
                     
                     else:
