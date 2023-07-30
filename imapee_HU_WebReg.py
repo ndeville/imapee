@@ -1,5 +1,5 @@
 """
-SCRIPT for webinar_platform@hubilo.cloud
+SCRIPT for webinar_platform@hubilo.cloud & @hubilo-webinar.com
 to get webinar vendors
 """
 
@@ -47,16 +47,33 @@ from urllib.parse import urlparse
 
 # GLOBALS
 
-test = 0
-v = 1
+test = 1
+verbose = 1
 delete = 0
 
 # if not test:
 #     import backup_db
 
-EMAIL_ACCOUNT = os.getenv("EMAIL_ACCOUNT_WEBINAR_HUBILO_CLOUD")
-PASSWORD = os.getenv("PASSWORD_WEBINAR_HUBILO_CLOUD")
-EMAIL_SERVER= os.getenv("EMAIL_SERVER_WEBINAR_HUBILO_CLOUD")
+# EMAIL_HUBILO_CLOUD = os.getenv("EMAIL_HUBILO_CLOUD")
+# PASSWORD_HUBILO_CLOUD = os.getenv("PASSWORD_HUBILO_CLOUD")
+# SERVER_HUBILO_CLOUD= os.getenv("SERVER_HUBILO_CLOUD")
+
+EMAIL_HUBILO_WEBINAR_COM = os.getenv("EMAIL_HUBILO_WEBINAR_COM")
+PASSWORD_HUBILO_WEBINAR_COM = os.getenv("PASSWORD_HUBILO_WEBINAR_COM")
+SERVER_HUBILO_WEBINAR_COM= os.getenv("SERVER_HUBILO_WEBINAR_COM")
+
+
+email_accounts = {
+    'webinar_platform@hubilo.cloud': {
+        'password': os.getenv("PASSWORD_HUBILO_CLOUD"),
+        'server': os.getenv("EMAIL_SERVER_WEBINAR_HUBILO_CLOUD"),
+    },
+    'nicolas@hubilo-webinar.com': {
+        'password': os.getenv("PASSWORD_WEBINAR_HUBILO_WEBINAR"),
+        'server': os.getenv("EMAIL_SERVER_WEBINAR_HUBILO_WEBINAR"),
+    },
+}
+
 
 EMAIL_REGEX1 = r"""(?:[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*|"(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21\x23-\x5b\x5d-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])*")@(?:(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?|\[(?:(?:(2(5[0-5]|[0-4][0-9])|1[0-9][0-9]|[1-9]?[0-9]))\.){3}(?:(2(5[0-5]|[0-4][0-9])|1[0-9][0-9]|[1-9]?[0-9])|[a-z0-9-]*[a-z0-9]:(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21-\x5a\x53-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])+)\])"""
 EMAIL_REGEX = r"[a-z0-9\.\-+_]+@[a-z0-9\.\-+_]+\.[a-z]+"
@@ -103,7 +120,7 @@ safe_domains = (
     'webinar.net',
 )
 
-blacklist_emails = [
+blacklist_emails = list(my_utils.get_all_vendors_domains()) + [
     'support@google.com',
     'report@microsoft.com',
     '@amazonses.com',
@@ -122,7 +139,7 @@ count_records_created = 0
 
 uids = set()
 
-existing_emails = [x.email for x in select_all_records(DB_BTOB, "people") if x.email != None]
+existing_emails = my_utils.get_all_people_emails()
 
 
 # CLASSES
@@ -216,7 +233,7 @@ def extract_urls_with_domain(html_code):
 
 
 
-def process():
+def process(EMAIL_SERVER, EMAIL_ACCOUNT, PASSWORD):
     global count_total
     global count
     global count_processed
@@ -235,7 +252,7 @@ def process():
     global existing_emails
     global blacklist_emails
     
-    v = True
+    verbose = True
 
     delete_uids = []
 
@@ -262,8 +279,8 @@ def process():
             # email_sender = msg.from_values.email.strip().lower()
             email_sender = my_utils.validate_email_format(msg.from_values.email.strip().lower())
 
-            if v:
-                print(f"\n{count_processed} - email_sender: {email_sender}")
+            if verbose:
+                print(f"\n\n\n========= {count_processed}\nemail_sender: {email_sender}\nsubject: {msg.subject}\n")
 
             if type(email_sender) == str:
 
@@ -277,14 +294,11 @@ def process():
 
                     if len(vendors_in_email) > 0:
 
-                        if v:
-                            print(f"\n{count} - subject: {msg.subject}")
-
                         for vendor in vendors_in_email:
 
                             count += 1    
 
-                            if v:
+                            if verbose:
                                 print(f"\n✅\t{vendor.domain} used by {email_sender_domain} with URL: {vendor.url}")
 
                             if not test:
@@ -300,7 +314,7 @@ def process():
                                             'domain': email_sender_domain,
                                             'vendor': vendor.domain,
                                             'url': vendor.url,
-                                            'src': f'imapee_INBOX {ts_db}',
+                                            'src': f'imapee_HU_WebReg {ts_db}',
                                             'created': ts_db,
                                         })
 
@@ -318,7 +332,7 @@ def process():
                                             'domain': email_sender_domain,
                                             'url_reg': vendor.url,
                                             'webinar_provider': vendor.domain,
-                                            'src': f'imapee_INBOX {ts_db}',
+                                            'src': f'imapee_HU_WebReg {ts_db}',
                                             'created': ts_db,
                                         })
 
@@ -343,13 +357,11 @@ def process():
                             create_record(DB_BTOB, 'people', {
                                 'email': email_sender,
                                 'domain': email_sender_domain,
-                                'src': f'imapee_INBOX {ts_db}',
+                                'src': f'imapee_HU_WebReg {ts_db}',
                                 'created': ts_db,
                             })
 
                             count_records_created += 1
-
-                            
 
                         except:
                             print(f"\n❌ {email_sender} already in DB")
@@ -392,8 +404,7 @@ def process():
     return emails
 
 
-process()
-
+process(SERVER_HUBILO_WEBINAR_COM, EMAIL_HUBILO_WEBINAR_COM, PASSWORD_HUBILO_WEBINAR_COM)
 
 
 ########################################################################################################
