@@ -4,7 +4,7 @@ to get webinar vendors
 """
 
 from datetime import datetime
-print(f"Starting at {datetime.now().strftime('%H:%M:%S')}")
+print(f"\nStarting at {datetime.now().strftime('%H:%M:%S')}")
 ts_db = f"{datetime.now().strftime('%Y-%m-%d-%H-%M')}"
 import time
 start_time = time.time()
@@ -14,10 +14,12 @@ import os
 from dotenv import load_dotenv
 load_dotenv()
 PATH_INDEXEE = os.getenv("PATH_INDEXEE")
+PATH_LINKEDINEE = os.getenv("PATH_LINKEDINEE")
 DB_BTOB = os.getenv("DB_BTOB")
 
 import sys
 sys.path.append(PATH_INDEXEE)
+sys.path.append(PATH_LINKEDINEE)
 
 from dotenv import load_dotenv
 load_dotenv()
@@ -27,12 +29,14 @@ from imap_tools import MailBox, AND, MailMessageFlags
 import re
 from DB.tools import select_all_records, update_record, create_record, delete_record
 
+import check_proxycurl
+
 import pprint
 pp = pprint.PrettyPrinter(indent=4)
 print()
 count = 0
 ####################
-# DRYFTA EMAIL AUTOMATIN
+# HUBILO WEBINAR REGISTRATION
 
 # IMPORTS
 
@@ -43,13 +47,23 @@ from tqdm import tqdm
 from bs4 import BeautifulSoup
 import re
 from urllib.parse import urlparse
+from typing import List, Dict, Tuple, Set, Union
+
+
+# LOGGING
+# logger = my_utils.setup_logger(__name__, log_file='log.log', level=logging.INFO)
+
+import logging
+logger = my_utils.setup_logger(log_file='log.log', level=logging.INFO)
 
 
 # GLOBALS
 
 test = 1
-verbose = 1
+# verbose = 1
+check_with_proxycurl = 0
 delete = 0
+
 
 # if not test:
 #     import backup_db
@@ -62,7 +76,7 @@ EMAIL_HUBILO_WEBINAR_COM = os.getenv("EMAIL_HUBILO_WEBINAR_COM")
 PASSWORD_HUBILO_WEBINAR_COM = os.getenv("PASSWORD_HUBILO_WEBINAR_COM")
 SERVER_HUBILO_WEBINAR_COM= os.getenv("SERVER_HUBILO_WEBINAR_COM")
 
-
+# To be used later
 email_accounts = {
     'webinar_platform@hubilo.cloud': {
         'password': os.getenv("PASSWORD_HUBILO_CLOUD"),
@@ -82,11 +96,17 @@ set_emails = set()
 
 emails = [] # List of Email objects
 
+existing_emails_in_people = my_utils.get_all_people_emails()
+existing_emails = my_utils.get_all_people_emails()
+existing_emails_in_mailingee = my_utils.get_all_mailingee_emails()
+
 set_emails_dne = set() # Set of dicts: {email: , src:, first: }
 set_new_emails = set()
 set_email_checked = set()
 added_to_WN_contacts = []
 updated_in_WN001 = []
+
+domains_in_this_run = []
 
 mail_error_prefixes = (
     'mailer-daemon',
@@ -114,18 +134,53 @@ blacklist_url = [
     'memberclicks.com',
 ]
 
+socials_domains = [
+    'facebook.com',
+    'twitter.com',
+    'linkedin.com',
+    'instagram.com',
+    'youtube.com',
+]
+
 safe_domains = (
     'dryfta.com',
     'skoolsonline.com',
     'webinar.net',
 )
 
-blacklist_emails = list(my_utils.get_all_vendors_domains()) + [
+vendors_domains = my_utils.get_all_vendors_domains_with_og_domain()
+
+blacklist_emails = list(vendors_domains) + list(socials_domains) + [
     'support@google.com',
     'report@microsoft.com',
     '@amazonses.com',
     'postmaster',
     'mailer-daemon',
+    'register@hubilo-webinar.com',
+    '.png',
+    'optout',
+    'privacy',
+    'noreply',
+    'no-reply',
+    'no_reply',
+    'no.reply',
+    'notify',
+    'thehubspotteam',
+    'analytics-',
+    'mailer-daemon',
+    'register@hubilo-webinaar.com',
+    'news@',
+    'do_not_reply',
+    'hubilo-webinar.com',
+]
+
+blacklist_subject = [
+    "Sorry you couldn't attend this Webcast",
+]
+
+register_links = [
+    'https://global.gotowebinar.com/join/',
+
 ]
 
 list_emails_errors = []
@@ -139,12 +194,12 @@ count_records_created = 0
 
 uids = set()
 
-existing_emails = my_utils.get_all_people_emails()
+
 
 
 # CLASSES
 
-
+# Construct an email object with all the info
 class Email:
     def __init__(
         self,
@@ -158,6 +213,11 @@ class Email:
         subject,
         text,
         cc,
+        vendor,
+        domain,
+        emails,
+        webinar_title,
+        url_reg
     ):
         self.uid = uid
         self.from_ = from_
@@ -169,20 +229,33 @@ class Email:
         self.subject = subject
         self.text = text
         self.cc = cc
+        self.vendor = vendor
+        self.domain = domain
+        self.emails = emails
+        self.webinar_title = webinar_title
+        self.url_reg = url_reg
 
     def __str__(self):
         return (
-            f"uid:{' ' * (15 - len('uid'))}\t{self.uid}\n"
+            f"\n"
+            # f"uid:{' ' * (15 - len('uid'))}\t{self.uid}\n"
             f"from_:{' ' * (15 - len('from_'))}\t{self.from_}\n"
-            f"flags:{' ' * (15 - len('flags'))}\t{', '.join(self.flags)}\n"
+            # f"flags:{' ' * (15 - len('flags'))}\t{', '.join(self.flags)}\n"
             f"date_str:{' ' * (15 - len('date_str'))}\t{self.date_str}\n"
-            f"date:{' ' * (15 - len('date'))}\t{self.date}\n"
-            f"from_values_name:{' ' * (15 - len('from_values_name'))}\t{self.from_values_name}\n"
-            f"from_values_email:{' ' * (15 - len('from_values_email'))}\t{self.from_values_email}\n"
+            # f"date:{' ' * (15 - len('date'))}\t{self.date}\n"
+            # f"from_values_name:{' ' * (15 - len('from_values_name'))}\t{self.from_values_name}\n"
+            # f"from_values_email:{' ' * (15 - len('from_values_email'))}\t{self.from_values_email}\n"
             f"subject:{' ' * (15 - len('subject'))}\t{self.subject}\n"
-            f"cc:{' ' * (15 - len('cc'))}\t{', '.join(str(email_addr.email) for email_addr in self.cc)}\n"
-            f"text:{' ' * (15 - len('text'))}\t(edited out)\n"
+            # f"cc:{' ' * (15 - len('cc'))}\t{', '.join(str(email_addr.email) for email_addr in self.cc)}\n"
+            # f"text:{' ' * (15 - len('text'))}\t(edited out)\n"
+            f"\nvendor:{' ' * (15 - len('vendor'))}\t{self.vendor}\n"
+            f"domain:{' ' * (15 - len('domain'))}\t{self.domain}\n"
+            # f"emails:{' ' * (15 - len('emails'))}\t{', '.join(str(email_addr.email) for email_addr in self.emails)}\n"
+            f"emails:\t\t\t{self.emails}\n"
+            f"webinar_title:{' ' * (15 - len('webinar_title'))}\t{self.webinar_title}\n"
+            f"url_reg:{' ' * (15 - len('url_reg'))}\t{self.url_reg}\n"
         )
+
 
 
 
@@ -190,221 +263,445 @@ class Email:
 # FUNCTIONS
 
 
-vendors_domains = my_utils.get_all_vendors_domains()
+def get_emails(email_html_text) -> Set:
+
+    set_emails = set() # start with set to avoid duplicates
+
+    email_regex = r"(?:href=\"mailto:)?([a-zA-Z0-9_.+-]+(?:@|\(at\))[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+)"
+
+    matches = re.findall(email_regex, email_html_text)
+
+    if len(matches) > 0:
+
+        for match in matches:
+            if '(at)' in match:
+                match = match.replace('(at)','@')
+            email = match.strip().lower()
+            parts = email.split('@')
+            email_domain = parts[1]
+
+            if not any(ele in email for ele in blacklist_emails):
+
+                if email_domain not in vendors_domains:
+
+                    valid_email = my_utils.validate_email_format(email)
+
+                    # Validate function returns cleaned up email if typo, else False if non-valid format
+                    if valid_email != False and valid_email not in set_emails:
+
+                        set_emails.add(valid_email)
+
+                        if valid_email not in existing_emails:
+
+                            create_record(DB_BTOB, 'people', 
+                                {
+                                'email': valid_email,
+                                'domain': my_utils.domain_from_email(valid_email),
+                                'src': f"imapee_HU_WebReg {ts_db}",
+                                # 'notes': f"Eventee {ts_db}",
+                                'created': ts_db,
+                                })
+                            
+                            existing_emails_in_people.append(valid_email)
+
+                        # logger.info(f"ℹ️\tADDED {email} to set_emails")
+
+    return set_emails
 
 
-def extract_urls_with_domain(html_code):
+
+
+
+def socials(email_html_text):
+
+    social_media_urls = {}
+    soup = BeautifulSoup(email_html_text, 'html.parser')
+
+    # Define regular expressions for different social media platforms
+    social_media_regex = {
+        'facebook': r'(?:https?:\/\/)?(?:www\.)?facebook\.com\/[^\/\n]+',
+        'twitter': r'(?:https?:\/\/)?(?:www\.)?twitter\.com\/[^\/\n]+',
+        'linkedin': r'(?:https?:\/\/)?(?:www\.)?linkedin\.com\/[^\/\n]+',
+        'youtube': r'(?:https?:\/\/)?(?:www\.)?youtube\.com\/[^\/\n]+',
+    }
+
+    for platform, regex in social_media_regex.items():
+        urls = soup.find_all('a', href=re.compile(regex, re.IGNORECASE))
+        for url in urls:
+            # social_media_urls.append({platform: url['href']})
+            social_media_urls[platform] = url['href']
+
+    return social_media_urls
+
+
+
+
+
+
+
+def extract_webinar_title(html_string):
+    soup = BeautifulSoup(html_string, 'html.parser')
+
+    title_element = soup.find('strong', string='Title:')
+
+    if title_element:
+        webinar_title = title_element.parent.find_next('span').text.strip()
+        return webinar_title
+    else:
+
+        title_element = soup.find('span', {'class': 'mktoText em_cent em_font h3'})
+        if title_element:
+            return title_element.text.strip()
+
+        else:
+            return None
+
+
+
+
+def extract_url_reg(html_text):
     global vendors_domains
-    global blacklist_url
+    # Initialize an empty list to store the matched URLs
+    matched_urls = set()
 
-    urls = []
-    soup = BeautifulSoup(html_code, 'html.parser')
+    # Create a BeautifulSoup object to parse the HTML text
+    soup = BeautifulSoup(html_text, 'html.parser')
 
-    class URL:
-        def __init__(self, domain, url):
-            self.domain = domain
-            self.url = url
+    # Find all anchor tags (links) in the HTML
+    anchor_tags = soup.find_all('a', href=True)
 
-        def __str__(self):
-            return f"URL(domain={self.domain}, url={self.url})"
-    
-    # Find all <a> tags in the HTML
-    for link in soup.find_all('a'):
-        href = link.get('href')
-        if href:
+    # Iterate through each anchor tag
+    for tag in anchor_tags:
+        url = tag['href']
 
-            # Parse the URL to extract the domain name
-            parsed_url = urlparse(href)
+        # Check if the URL contains any of the specified domain names
+        if any(domain in url for domain in vendors_domains):
 
-            if not any(blacklist_element in href for blacklist_element in blacklist_url):
+            # GTW
+            if 'goto' in url:
+                if 'gotowebinar.com/join/' in url:
+                    matched_urls.add(my_utils.clean_long_url(url))
+                else:
+                    continue
 
-                url_domain = parsed_url.netloc.lower()
-                
-                # Check if the domain name is in the specified list
-                for domain in vendors_domains:
-                    
-                    if f".{domain}" in url_domain or f"/{domain}" in url_domain:
+            # ON24
+            if 'on24' in url:
+                if 'wcc' in url:
+                    matched_urls.add(my_utils.clean_long_url(url))
+                else:
+                    continue
 
-                        urls.append(URL(domain=domain, url=href))
+            # ZOOM
+            if 'zoom' in url:
+                if 'zoom.us/w/' in url:
+                    matched_urls.add(my_utils.clean_long_url(url))
+                else:
+                    continue
 
-                        # break  # Break out of the inner loop if a match is found
-    
-    return urls
+            # CVENT
+            if 'cvent' in url:
+                if 'cvent.com/d/' in url:
+                    matched_urls.add(my_utils.clean_long_url(url))
+                else:
+                    continue
 
+            # EVENTBRITE
+            if 'eventbrite' in url:
+                if 'eventbrite.com/e/' in url:
+                    matched_urls.add(my_utils.clean_long_url(url))
+                else:
+                    continue
 
+            matched_urls.add(my_utils.clean_long_url(url))
 
-def process(EMAIL_SERVER, EMAIL_ACCOUNT, PASSWORD):
-    global count_total
-    global count
-    global count_processed
-    global count_errors
-    global count_mark_as_read
-    global count_deleted
-    global set_emails
-    global set_emails_dne
-    global set_new_emails
-    global set_email_checked
-    global added_to_WN_contacts
-    global updated_in_WN001
-    global list_emails_errors
-    global emails
-    global count_records_created
-    global existing_emails
-    global blacklist_emails
-    
-    verbose = True
-
-    delete_uids = []
+    return matched_urls
 
 
-    with MailBox(EMAIL_SERVER).login(EMAIL_ACCOUNT, PASSWORD) as mailbox:
 
-        # for msg in mailbox.fetch(AND(from_='Mail Delivery'), mark_seen=False): # example with search string
-        for msg in mailbox.fetch(mark_seen=False, reverse=False, bulk=True): # get all emails from most recent without changing read status
 
-        ### REFERENCE
-        # criteria = ‘ALL’, message search criteria, query builder
-        # charset = ‘US-ASCII’, indicates charset of the strings that appear in the search criteria. See rfc2978
-        # limit = None, limit on the number of read emails, useful for actions with a large number of messages, like “move”
-        # miss_no_uid = True, miss emails without uid
-        # mark_seen = True, mark emails as seen on fetch
-        # reverse = False, in order from the larger date to the smaller
-        # headers_only = False, get only email headers (without text, html, attachments)
-        # bulk = False, False - fetch each message separately per N commands - low memory consumption, slow; True - fetch all messages per 1 command - high memory consumption, fast
 
-            count_processed += 1
+
+
+
+
+EMAIL_SERVER = SERVER_HUBILO_WEBINAR_COM
+EMAIL_ACCOUNT = EMAIL_HUBILO_WEBINAR_COM
+PASSWORD = PASSWORD_HUBILO_WEBINAR_COM
+
+
+
+# verbose = True
+
+delete_uids = []
+
+"""
+Process emails as follows:e
+- if email is first from this domain, assume webinar confirmation email
+- if no company email found, capture the webinar title (delete later)
+- if company email already in Mailingee, delete email
+"""
+
+
+with MailBox(EMAIL_SERVER).login(EMAIL_ACCOUNT, PASSWORD) as mailbox:
+
+    for msg in mailbox.fetch(mark_seen=False, reverse=False, bulk=True): # get all emails from most recent without changing read status
+
+        count_processed += 1
+
+        to_delete = False
+
+        if count_processed < 1000000: # FOR TESTING ONLY
 
             ## Get email From sender 
+            email_sender = msg.from_values.email.strip().lower()
 
-            # email_sender = msg.from_values.email.strip().lower()
-            email_sender = my_utils.validate_email_format(msg.from_values.email.strip().lower())
+            print(f"\n\n\n========= {count_processed}\n")
 
-            if verbose:
-                print(f"\n\n\n========= {count_processed}\nemail_sender: {email_sender}\nsubject: {msg.subject}\n")
+            blacklist_subject = [
+                'Reminder: ',
+                'Sorry you couldn\'t attend',
+            ]
 
-            if type(email_sender) == str:
+            if any(ele in msg.subject for ele in blacklist_subject): # Add more logic here to delete emails
 
-                email_sender_domain = my_utils.domain_from_email(email_sender)
+                print(f"❌ DELETE \t{msg.subject}")
+                to_delete = True
 
-                # Extract vendor URLS from body
 
-                if email_sender_domain not in vendors_domains:
 
-                    vendors_in_email = extract_urls_with_domain(msg.html.lower())
+            else:
 
-                    if len(vendors_in_email) > 0:
+                # VENDOR DOMAIN
 
-                        for vendor in vendors_in_email:
+                vendor_domain = None
 
-                            count += 1    
+                for vd in vendors_domains:
 
-                            if verbose:
-                                print(f"\n✅\t{vendor.domain} used by {email_sender_domain} with URL: {vendor.url}")
+                    if vd in email_sender:
 
-                            if not test:
+                        vendor_domain = vd
 
-                                # ADD to using_vendor table
+                        # logger.info(f"✅\t{vd} (from email_sender)")
+                        print(f"✅\t{vd} (from email_sender)")
 
-                                uid = f"{email_sender_domain}-{vendor.domain}"
+                        break
 
-                                if uid not in uids:
+                if vendor_domain == None:
 
-                                    try:
-                                        create_record(DB_BTOB, 'using_vendor', {
-                                            'domain': email_sender_domain,
-                                            'vendor': vendor.domain,
-                                            'url': vendor.url,
-                                            'src': f'imapee_HU_WebReg {ts_db}',
-                                            'created': ts_db,
-                                        })
+                    for vd in vendors_domains:
 
-                                        count_records_created += 1
+                        if vd in msg.html.lower():
 
-                                    except:
-                                        print(f"\n❌ using_vendor: {email_sender_domain}-{vendor.domain} already in DB")
-                                        continue
+                            vendor_domain = vd
 
-                                    # ADD to webinar table
+                            # logger.info(f"✅\t{vd} (from msg.html)")
+                            print(f"✅\t{vd} (from msg.html)")
 
-                                    try:
-                                        create_record(DB_BTOB, 'webinars', {
-                                            'website_org': email_sender_domain,
-                                            'domain': email_sender_domain,
-                                            'url_reg': vendor.url,
-                                            'webinar_provider': vendor.domain,
-                                            'src': f'imapee_HU_WebReg {ts_db}',
-                                            'created': ts_db,
-                                        })
+                            break
 
-                                        count_records_created += 1
+                if vendor_domain != None:
 
-                                    except:
-                                        print(f"\n❌ webinar {vendor.url} already in DB")
-                                        continue
-
-                                    uids.add(uid)
+                    vendor_domain = vendors_domains[vendor_domain]
 
 
 
 
-                # Add email to DB
-
-                if email_sender not in existing_emails and not any(blacklist_element in email_sender for blacklist_element in blacklist_emails):
-
-                    if not test:
-
-                        try:
-                            create_record(DB_BTOB, 'people', {
-                                'email': email_sender,
-                                'domain': email_sender_domain,
-                                'src': f'imapee_HU_WebReg {ts_db}',
-                                'created': ts_db,
-                            })
-
-                            count_records_created += 1
-
-                        except:
-                            print(f"\n❌ {email_sender} already in DB")
-                            continue
-                    
-                    else:
-
-                        print(f"\nℹ️  \t{email_sender} to be added to DB")
-
-                    existing_emails.append(email_sender)
 
 
-            email_obj = Email(
-                    uid=msg.uid,
-                    from_=msg.from_,
-                    flags=msg.flags,
-                    date_str=msg.date_str,
-                    date=msg.date,
-                    from_values_name=msg.from_values.name,
-                    from_values_email=msg.from_values.email,
-                    subject=msg.subject,
-                    text=msg.text,
-                    cc=msg.cc_values,
-                )
-            
-            emails.append(email_obj)
-
-            if delete:
-
-                delete_uids.append(msg.uid)
-
-                print(f"❌ Added to delete: {msg.uid} - {msg.subject}")
-    
-
-        if len(delete_uids) > 0:
-
-            mailbox.delete(delete_uids)
-
-    # return list_emails_errors
-    return emails
 
 
-process(SERVER_HUBILO_WEBINAR_COM, EMAIL_HUBILO_WEBINAR_COM, PASSWORD_HUBILO_WEBINAR_COM)
+                # NON-VENDOR EMAILS
+
+                # Get all emails in email body
+                non_vendor_emails = get_emails(msg.html.lower()) # -> set
+
+                # Add email_sender to non_vendor_emails if not in vendors_domains
+                if not any(ele in email_sender for ele in vendors_domains):
+                    non_vendor_emails.add(email_sender)
+
+                # Add Cc emails to non_vendor_emails if not in vendors_domains
+                cc_emails = msg.cc
+                if cc_emails and len(cc_emails) > 0:
+                    for cc_email in cc_emails:
+                        if not any(ele in cc_email for ele in vendors_domains):
+                            non_vendor_emails.add(cc_email)
+
+                # Add Reply-To emails to non_vendor_emails if not in vendors_domains
+                reply_to_emails = msg.reply_to
+                if reply_to_emails and len(reply_to_emails) > 0:
+                    for reply_to_email in reply_to_emails:
+                        if not any(ele in reply_to_email for ele in vendors_domains):
+                            non_vendor_emails.add(reply_to_email)
+
+
+
+
+
+
+                # EMAIL SENDER DOMAIN
+
+                email_sender_domain = None
+
+                # Try to get email_sender_domain from email_sender
+                # if not any(ele in email_sender for ele in vendors_domains):
+                if not any(ele in email_sender for ele in blacklist_emails):
+
+                    email_sender_domain = my_utils.domain_from_email(email_sender)
+
+                    # logger.info(f"email_sender_domain from email:\t{email_sender_domain}")
+
+
+
+
+                # Try to get domain from social links
+                social_links = socials(msg.html)
+                if check_with_proxycurl:
+                    print(f"ℹ️  Checking with proxycurl, will cost credits.")
+                    if email_sender_domain == None and len(social_links) > 0:
+                        if 'linkedin' in social_links:
+                            email_sender_domain = check_proxycurl.get_domain_from_linkedin(social_links['linkedin'])
+
+
+
+
+                webinar_title_cleaning = [
+                    "You’ve Registered for ",
+                    "Confirmation",
+                    "Registration  to ",
+                    "[Registration Confirmation]",
+                    "Registration approved for Webex webinar:",
+                    "Watch on-demand now:",
+                    "Registration Confirmed -",
+                    "You've Registered for the ",
+                    "Webinar",
+                ]
+
+
+
+                # WEBINAR TITLE
+
+                webinar_title = None
+
+                # Get title from subject if first email ever received from this domain
+                if webinar_title == None and email_sender_domain not in domains_in_this_run:
+
+                    webinar_title = msg.subject.strip()
+
+                    # Cleaning
+                    for wtc in webinar_title_cleaning:
+                        if wtc in webinar_title:
+                            webinar_title = webinar_title.replace(wtc, "")
+
+                    webinar_title = webinar_title.strip()
+
+                    if webinar_title == "Thank you for registering":
+
+                        webinar_title = extract_webinar_title(msg.html)
+
+                    domains_in_this_run.append(email_sender_domain)
+
+                
+                # if webinar_title == None:
+
+                #     print(f"\n\n\n{msg.html}\n\n\n")
+
+
+
+
+
+
+                # WEBINAR REGISTRATION URL
+
+                # TODO
+                url_reg = extract_url_reg(msg.html)
+
+
+
+                # CLEAN EMAILS LIST
+                clean_emails_list = [x for x in non_vendor_emails if not any(ele in x for ele in blacklist_emails) and not any(ele in x for ele in socials_domains)]
+
+                # Try to get email_sender_domain from non_vendor_email if no email_sender_domain
+                if email_sender_domain == None and len(clean_emails_list) > 0:
+
+                    for email_found in clean_emails_list:
+
+                        print(f"#626 email_found:\t{email_found=}")
+
+                        # if not any(ele in email_found for ele in socials_domains) and not any(ele in email_found for ele in vendors_domains):
+                        if not any(ele in email_sender for ele in blacklist_emails):
+
+                            email_sender_domain = my_utils.domain_from_email(email_found)
+
+                            break
+
+
+
+                # Construct an email object with all the info
+                email_obj = Email(
+                        uid=msg.uid,
+                        from_=msg.from_,
+                        flags=msg.flags,
+                        date_str=msg.date_str,
+                        date=msg.date,
+                        from_values_name=msg.from_values.name,
+                        from_values_email=msg.from_values.email,
+                        subject=msg.subject,
+                        text=msg.text,
+                        cc=msg.cc_values,
+                        vendor=vendor_domain,
+                        domain=email_sender_domain,
+                        emails=clean_emails_list,
+                        webinar_title=webinar_title,
+                        url_reg=url_reg
+                    )
+                
+                emails.append(email_obj)
+
+                # print(f"{email_obj}")
+
+
+                campaigns = [
+                    'on24.com',
+                    'zoom.com',
+                    'gotowebinar.com',
+                ]
+
+                if not to_delete and email_obj.vendor != None:
+
+                    if email_obj.vendor in campaigns:
+
+                        if email_obj.domain != None and len(email_obj.emails) > 0 and email_obj.webinar_title != None:
+
+                            for email_to_add in email_obj.emails: # loop through all emails found in email
+
+                                if email_to_add not in existing_emails_in_mailingee:
+
+                                    print(f"\n✅✅ ADD TO MAILINGEE: {email_obj}")
+
+                                    count_records_created += 1
+
+                                    existing_emails_in_mailingee.append(email_to_add)
+
+                        else:
+
+                            print(f"Missing elements in email_obj: {email_obj}")
+
+
+
+
+
+        else:
+            print(f"{count_processed} max_emails reached")
+
+
+
+        if to_delete:
+
+            print(f"TO DO: Deleting {len(delete_uids)} emails...")
+
+        #     mailbox.delete(delete_uids)
+
+
 
 
 ########################################################################################################
@@ -440,3 +737,14 @@ if __name__ == '__main__':
         print(f'\n{os.path.basename(__file__)} finished in {round(run_time/60)}mns at {datetime.now().strftime("%H:%M:%S")}.\n')
     else:
         print(f'\n{os.path.basename(__file__)} finished in {round(run_time/3600, 2)}hrs at {datetime.now().strftime("%H:%M:%S")}.\n')
+
+
+
+# TODO
+# - Check webinar title
+# - Get OG vendor domains
+# - Get domain from socials
+# - Add emails to DB
+# - Add to using_vendor table
+# - Extract webinar registration URL
+# - Add to Mailingee
