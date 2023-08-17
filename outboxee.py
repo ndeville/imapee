@@ -23,6 +23,7 @@ pp = pprint.PrettyPrinter(indent=4)
 
 import my_utils
 from imap_tools import MailBox, AND, MailMessageFlags
+import grist_HU_ext
 
 from DB.tools import select_all_records, update_record, create_record, delete_record
 
@@ -77,7 +78,8 @@ EMAIL_ACCOUNT = EMAIL_HUBILO_WEBINAR_COM
 PASSWORD = PASSWORD_HUBILO_WEBINAR_COM
 
 
-
+emails_in_grist = [x.email for x in grist_HU_ext.Webinars.fetch_table('Sent')]
+print(f"\n{len(emails_in_grist)=}")
 
 
 with MailBox(EMAIL_SERVER).login(EMAIL_ACCOUNT, PASSWORD, initial_folder=None) as mailbox:
@@ -109,6 +111,8 @@ with MailBox(EMAIL_SERVER).login(EMAIL_ACCOUNT, PASSWORD, initial_folder=None) a
 
             from_email = msg.from_
 
+            # ADD TO LOCAL DB
+            
             # try:
             create_record(DB_EMAILEE, 'outboxee', {
                 'date': date_email,
@@ -122,6 +126,19 @@ with MailBox(EMAIL_SERVER).login(EMAIL_ACCOUNT, PASSWORD, initial_folder=None) a
 
             # except Exception as e:
             #     print(f"\n{msg.to} from {msg.date}: ERROR {e}\n")
+
+            # ADD TO GRIST
+
+            if rcp not in emails_in_grist:
+
+                grist_HU_ext.Webinars.add_records('Sent', [
+                                                {   'email': rcp,
+                                                    'domain': my_utils.domain_from_email(rcp),
+                                                    'subject': subject,
+                                                    }
+                                            ])
+
+                emails_in_grist.append(rcp)
 
 
 
