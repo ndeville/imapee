@@ -450,6 +450,10 @@ with MailBox(EMAIL_SERVER).login(EMAIL_ACCOUNT, PASSWORD) as mailbox:
                 'gartnerwebinars',
                 'gartner.com',
                 'hydac.co.uk',
+                'zscaler.com',
+                'five9.com',
+                'ragan.com',
+                'autotrader.co.uk',
             ]
 
             if any(ele in msg.subject for ele in blacklist_subject): # Add more logic here to delete emails
