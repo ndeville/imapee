@@ -705,7 +705,7 @@ with MailBox(EMAIL_SERVER).login(EMAIL_ACCOUNT, PASSWORD) as mailbox:
 
             mailbox.delete(msg.uid)
 
-# # TODO
+# # TODOhj
 # - split email_direct/email_indirect
 # - domain_vendor 
 # - update Grist
