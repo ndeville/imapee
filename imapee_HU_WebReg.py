@@ -1,6 +1,9 @@
 """
 SCRIPT for webinar_platform@hubilo.cloud & @hubilo-webinar.com
 to get webinar vendors
+ADDS also new emails to DB in btob.people table 
+
+2023-11-14 08:01 Used to get emails from all Dryfta & Hubilo alternative mailboxes before deleting them.
 """
 
 from datetime import datetime
@@ -21,15 +24,11 @@ import sys
 sys.path.append(PATH_INDEXEE)
 sys.path.append(PATH_LINKEDINEE)
 
-from dotenv import load_dotenv
-load_dotenv()
-
-
 from imap_tools import MailBox, AND, MailMessageFlags
 import re
 from DB.tools import select_all_records, update_record, create_record, delete_record
 
-import check_proxycurl
+# import check_proxycurl
 
 import pprint
 pp = pprint.PrettyPrinter(indent=4)
@@ -68,13 +67,23 @@ delete = 0
 # if not test:
 #     import backup_db
 
-# EMAIL_HUBILO_CLOUD = os.getenv("EMAIL_HUBILO_CLOUD")
-# PASSWORD_HUBILO_CLOUD = os.getenv("PASSWORD_HUBILO_CLOUD")
-# SERVER_HUBILO_CLOUD= os.getenv("SERVER_HUBILO_CLOUD")
 
-EMAIL_HUBILO_WEBINAR_COM = os.getenv("EMAIL_HUBILO_WEBINAR_COM")
-PASSWORD_HUBILO_WEBINAR_COM = os.getenv("PASSWORD_HUBILO_WEBINAR_COM")
-SERVER_HUBILO_WEBINAR_COM= os.getenv("SERVER_HUBILO_WEBINAR_COM")
+# # OG
+# EMAIL_HUBILO_WEBINAR_COM = os.getenv("EMAIL_HUBILO_WEBINAR_COM")
+# PASSWORD_HUBILO_WEBINAR_COM = os.getenv("PASSWORD_HUBILO_WEBINAR_COM")
+# SERVER_HUBILO_WEBINAR_COM= os.getenv("SERVER_HUBILO_WEBINAR_COM")
+EMAIL_HUBILO_WEBINAR_COM = "nicolas@hubilo-webinar.com"
+PASSWORD_HUBILO_WEBINAR_COM = "@zYbGQ_8_eX9@pEzZ.G"
+SERVER_HUBILO_WEBINAR_COM= "imap.ionos.de"
+
+
+if 'dryfta' in EMAIL_HUBILO_WEBINAR_COM:
+    db_tag = 'DR'
+elif 'hubilo' in EMAIL_HUBILO_WEBINAR_COM or 'webinar-plus' in EMAIL_HUBILO_WEBINAR_COM:
+    db_tag = 'HU'
+else:
+    db_tag = None
+
 
 # # To be used later
 # email_accounts = {
@@ -246,6 +255,7 @@ class EmailData:
 
 def get_emails(email_html_text) -> Set:
     global count_new_emails
+    global db_tag
 
     set_emails = set() # start with set to avoid duplicates
 
@@ -281,9 +291,10 @@ def get_emails(email_html_text) -> Set:
                                 {
                                 'email': valid_email,
                                 'domain': my_utils.domain_from_email(valid_email),
-                                'src': f"imapee_HU_WebReg {ts_db}",
+                                'src': f"imapee {EMAIL_HUBILO_WEBINAR_COM} {ts_db}",
                                 # 'notes': f"Eventee {ts_db}",
                                 'created': ts_db,
+                                'db': db_tag,
                                 })
                             
                             existing_emails_in_people.append(valid_email)
@@ -761,8 +772,9 @@ with MailBox(EMAIL_SERVER).login(EMAIL_ACCOUNT, PASSWORD) as mailbox:
                         {
                         'email': clean_email,
                         'domain': my_utils.domain_from_email(clean_email),
-                        'src': f"imapee_HU_WebReg {ts_db}",
+                        'src': f"imapee {EMAIL_HUBILO_WEBINAR_COM} {ts_db}",
                         'created': ts_db,
+                        'db': db_tag,
                         })
 
 
