@@ -98,7 +98,7 @@ with MailBox(EMAIL_SERVER).login(EMAIL_ACCOUNT, PASSWORD) as mailbox:
                     print(f"{msg.to=}")
                     print(f"{msg.subject=}")
                     
-                    print(f"DELETING {msg.uid=}")
+                    print(f"✅ DELETING {msg.uid=}")
                     mailbox.delete([msg.uid])
                     count_deleted += 1
 
@@ -115,7 +115,7 @@ with MailBox(EMAIL_SERVER).login(EMAIL_ACCOUNT, PASSWORD) as mailbox:
                 print(f"{msg.to=}")
                 print(f"{msg.subject=}")
                 
-                print(f"DELETING {msg.uid=}")
+                print(f"✅ DELETING {msg.uid=}")
                 mailbox.delete([msg.uid])
                 count_deleted += 1
 
@@ -132,7 +132,7 @@ with MailBox(EMAIL_SERVER).login(EMAIL_ACCOUNT, PASSWORD) as mailbox:
                 print(f"{msg.to=}")
                 print(f"{msg.subject=}")
                 
-                print(f"DELETING {msg.uid=}")
+                print(f"✅ DELETING {msg.uid=}")
                 mailbox.delete([msg.uid])
                 count_deleted += 1
 
