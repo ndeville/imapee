@@ -27,7 +27,7 @@ pp = pprint.PrettyPrinter(indent=4)
 print()
 count = 0
 ####################
-# DRYFTA EMAIL AUTOMATIN
+# DRYFTA EMAIL AUTOMATION
 
 # IMPORTS
 
