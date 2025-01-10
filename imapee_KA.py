@@ -68,7 +68,7 @@ print(f"\nProcessing {total_accounts} email accounts to manage outbound emails:"
 
 for account_idx, email_account in enumerate(email_accounts, 1):
     user_name, password, imap_host, smtp_host = email_account
-    print(f"\n[{account_idx:,}/{total_accounts:,}] Checking {user_name}...", end='', flush=True)
+    print(f"\n\n\n[{account_idx:,}/{total_accounts:,}] Checking {user_name}...", end='', flush=True)
 
 
     with MailBox(imap_host).login(user_name, password) as mailbox:
@@ -132,6 +132,10 @@ for account_idx, email_account in enumerate(email_accounts, 1):
                         smtp.login(user_name, password)
                         smtp.send_message(forward_msg)
                     print(f"✅ Forwarded to {forward_to} with {user_name}")
+                    # Delete the email
+                    mailbox.delete([msg.uid])
+                    count_deleted += 1
+                    print(f"\n✅ & DELETED {msg.subject} from {msg.from_}")
                 except Exception as e:
                     print(f"❌ Failed to forward: {str(e)}")
 
@@ -152,6 +156,10 @@ for account_idx, email_account in enumerate(email_accounts, 1):
                             conn.commit()
                             if cur.rowcount > 0:
                                 print(f"\n✅ Updated {from_email} with dne=1")
+                                # Delete the email
+                                mailbox.delete([msg.uid])
+                                count_deleted += 1
+                                print(f"\n✅ & DELETED {msg.subject} from {msg.from_}")
                             else:
                                 print(f"❌ No record found for {from_email}")
                     else:
