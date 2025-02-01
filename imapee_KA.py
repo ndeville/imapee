@@ -22,7 +22,7 @@ pp = pprint.PrettyPrinter(indent=4)
 # IMPORTS
 
 # import my_utils
-# from DB.tools import select_all_records, update_record, create_record, delete_record
+from DB.tools import select_all_records, update_record, create_record, delete_record
 import sqlite3
 
 from datetime import datetime
@@ -94,7 +94,27 @@ for account_idx, email_account in enumerate(email_accounts, 1):
             print(f"\n{msg.text}")
             print(f"\n---")
 
-            user_input = input("\n📝 >>> (del)ete / (f)orward / / (dne) / skip: ")
+            # Extract email from message body for bounced emails
+            email_in_body = None
+            body_text = msg.text or ''
+            # Common patterns for failed delivery notifications
+            email_patterns = [
+                r'Original-Recipient:.*?rfc822;([^\s<>]+@[^\s<>]+)',
+                r'Final-Recipient:.*?rfc822;([^\s<>]+@[^\s<>]+)', 
+                r'(?:failed|undeliverable|returned).*?([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})',
+                r'[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}'
+            ]
+            # Try each pattern until we find a match
+            for pattern in email_patterns:
+                matches = re.findall(pattern, body_text, re.IGNORECASE)
+                if matches:
+                    email_in_body = matches[0].strip().lower()
+                    print(f"\nℹ️  Found bounced email address: {email_in_body}")
+                    break
+
+            print(f"\n{email_in_body=}")
+
+            user_input = input("\n📝 >>> (del)ete / (f)orward / / (dne) / (b)ounced / skip: ")
 
             if user_input.lower() == 'del': # Delete the email
 
@@ -167,10 +187,71 @@ for account_idx, email_account in enumerate(email_accounts, 1):
                 else:
                     print("\n❌ SKIPPED DNE for thomas.anderson@audience-engage.com")
 
+            elif user_input.lower() == 'b':
+
+
+                if email_in_body:
+                    # move email address to email_old
+                    with sqlite3.connect(DB_BTOB) as conn:
+                        cur = conn.cursor()
+                        cur.execute("""
+                            UPDATE people 
+                            SET dne = 1,
+                                email_old = email,
+                                email = NULL,
+                                email_status = NULL,
+                                updated = ?
+                            WHERE email = ?
+                        """, (ts_db, email_in_body))
+                        conn.commit()
+
+                    print(f"\n✅ Moved {email_in_body} to email_old and set email_status to NULL.")
+
+                    # Delete the email
+                    mailbox.delete([msg.uid])
+                    count_deleted += 1
+                    print(f"\n✅ DELETED: {msg.subject} from {msg.from_}")
+
+                else:
+                    print("\n❌ Could not extract bounced email address. Review logic in imapee.imapee_KA.py")
+
+
+
             else:
                 print(f"\n❌ SKIPPED {msg.subject}")
                 continue
 
+
+
+
+# Cleanup database
+
+print(f"\n\n\nCleaning up database...")
+
+with sqlite3.connect(DB_BTOB) as conn:
+    cur = conn.cursor()
+    cur.execute(f"""
+        SELECT rowid, email
+        FROM people
+        WHERE email_status LIKE '202%'
+    """)
+    rowids_of_people_with_email_status_with_date = {x[0]: x[1] for x in cur.fetchall()}
+
+if len(rowids_of_people_with_email_status_with_date) > 0:
+    print(f"\nFound {len(rowids_of_people_with_email_status_with_date)} people with email_status starting with '202'")
+
+    for rowid, email in rowids_of_people_with_email_status_with_date.items():
+
+        print(f"\n================= {email} #{rowid}\n---")
+
+        update_record(DB_BTOB, "people", {
+            'rowid': rowid,
+            'email_status': "V",
+            'updated': ts_db,
+        })
+
+else:
+    print(f"\nNo people found with email_status starting with '202'")
 
 
 
