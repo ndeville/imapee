@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<feedback>
+ <report_metadata>
+  <org_name>xsalto.com</org_name>
+  <email>dmarc@xsalto.com</email>
+  <report_id>kaltura.cloud:1739250014</report_id>
+  <date_range>
+   <begin>1739163614</begin>
+   <end>1739250014</end>
+  </date_range>
+ </report_metadata>
+ <policy_published>
+  <domain>kaltura.cloud</domain>
+  <adkim>r</adkim>
+  <aspf>r</aspf>
+  <p>none</p>
+  <sp>none</sp>
+  <pct>100</pct>
+ </policy_published>
+ <record>
+  <row>
+   <source_ip>217.72.192.73</source_ip>
+   <count>1</count>
+   <policy_evaluated>
+    <disposition>none</disposition>
+    <dkim>pass</dkim>
+    <spf>pass</spf>
+   </policy_evaluated>
+  </row>
+  <identifiers>
+   <header_from>kaltura.cloud</header_from>
+  </identifiers>
+  <auth_results>
+   <spf>
+    <domain>kaltura.cloud</domain>
+    <result>pass</result>
+   </spf>
+   <dkim>
+    <domain>kaltura.cloud</domain>
+    <result>pass</result>
+   </dkim>
+  </auth_results>
+ </record>
+</feedback>

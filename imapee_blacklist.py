@@ -128,8 +128,8 @@ def get_bounced_emails(verbose=verbose):
                     # Delete emails coming from specific emails
                     from_emails = [
                         "Mail Delivery System",
-                        "DAEMON",
-                        "noreply@ionos.de",
+                        # "DAEMON",
+                        # "noreply@ionos.de",
                         "leo.pearce@claremontconsulting.com",
                         "karen.cruise@ifourtechnology.com",
                         "@marketnewsinsights.com",

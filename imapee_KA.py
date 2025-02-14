@@ -94,6 +94,11 @@ for account_idx, email_account in enumerate(email_accounts, 1):
             print(f"\n{msg.text}")
             print(f"\n---")
 
+            # Skip if email is addressed to fu@kaltura.cloud
+            if msg.to and msg.to[0].lower() == "fu@kaltura.cloud":
+                print("\n❌ SKIPPED: Email addressed to fu@kaltura.cloud")
+                continue
+
             # Extract email from message body for bounced emails
             email_in_body = None
             body_text = msg.text or ''
