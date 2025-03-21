@@ -65,6 +65,10 @@ def get_bounced_emails(verbose=verbose):
     
     IGNORED_DOMAINS = {
         'audience-engage.com',
+        'kaltura.com',
+        'kaltura.cloud',
+        'kaltura.email',
+        'kalturavideocloud.com',
     }
 
     bounced_emails = set()
@@ -149,6 +153,8 @@ def get_bounced_emails(verbose=verbose):
                         "@attendeesnames.biz",
                         "leads@outlook.com",
                         "@leadcarnivals.biz",
+                        "spitfirestudios.com",
+                        "storyblocks.com",
                     ]
                     if any(from_email in msg.from_ for from_email in from_emails):
                         print(f"ℹ️  Deleting email in {user_name} from {msg.from_}")
@@ -159,6 +165,8 @@ def get_bounced_emails(verbose=verbose):
                     # Delete emails with specific subjects
                     subjects = [
                         "TYZEQ2Y",
+                        "Spambericht",
+                        "Checking Mailbox Status",
                     ]
                     if any(subject in msg.subject for subject in subjects):
                         print(f"ℹ️  Deleting email in {user_name} with subject containing '{msg.subject}'")
@@ -182,16 +190,71 @@ def get_bounced_emails(verbose=verbose):
                             "Mail Delivery System" in msg.from_ or "DAEMON" in msg.from_.upper()
 
                     if is_bounce:
-                        body_text = msg.text or msg.html or ""
-                        body_text = body_text.replace('\n', ' ').replace('\r', '')
-                        found_emails = re.findall(r'[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}', body_text)
-                        valid_emails = [
-                            email for email in found_emails 
-                            if '@' in email 
-                            and '.' in email 
-                            and not any(email.lower().endswith(f'@{domain}') for domain in IGNORED_DOMAINS)
+
+                        print(f"\n=== Processing bounced email #{msg.uid} from {user_name} - Subject: {msg.subject}")
+
+                        # 250218-1800 REWORKING THE ENTIRE LOGIC BELOW
+                        # <250218-1800>
+
+                        # body_text = msg.text or msg.html or ""
+                        # body_text = body_text.replace('\n', ' ').replace('\r', '')
+                        # found_emails = re.findall(r'[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}', body_text)
+                        # valid_emails = [
+                        #     email for email in found_emails 
+                        #     if '@' in email 
+                        #     and '.' in email 
+                        #     and not any(email.lower().endswith(f'@{domain}') for domain in IGNORED_DOMAINS)
+                        # ]
+                        # bounced_emails.update(valid_emails)
+
+
+                        # Extract email from message body for bounced emails
+                        email_in_body = None
+                        body_text = msg.text or ''
+                        # Common patterns for failed delivery notifications
+                        email_patterns = [
+                            r'Original-Recipient:.*?rfc822;([^\s<>]+@[^\s<>]+)',
+                            r'Final-Recipient:.*?rfc822;([^\s<>]+@[^\s<>]+)', 
+                            r'(?:failed|undeliverable|returned).*?([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})',
+                            r'[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}'
                         ]
-                        bounced_emails.update(valid_emails)
+                        # Try each pattern until we find a match
+                        for pattern in email_patterns:
+                            matches = re.findall(pattern, body_text, re.IGNORECASE)
+                            if matches:
+                                potential_email = matches[0].strip().lower()
+                                if not any(potential_email.endswith(f'@{domain}') for domain in IGNORED_DOMAINS):
+                                    email_in_body = potential_email
+                                    print(f"ℹ️  Found bounced email address: {email_in_body}")
+                                    break
+
+
+                        if email_in_body:
+
+                            bounced_emails.add(email_in_body)
+
+                            # move email address to email_old
+                            with sqlite3.connect(DB_BTOB) as conn:
+                                cur = conn.cursor()
+                                cur.execute("""
+                                    UPDATE people 
+                                    SET dne = 1,
+                                        email_old = email,
+                                        email = NULL,
+                                        email_status = NULL,
+                                        updated = ?
+                                    WHERE email = ?
+                                """, (ts_db, email_in_body))
+                                conn.commit()
+                                if cur.rowcount > 0:
+                                    print(f"✅ Moved {email_in_body} to email_old and set email_status to NULL.")
+
+                            # Delete the email
+                            mailbox.delete([msg.uid])
+                            count_deleted += 1
+                            print(f"✅ DELETED: {msg.subject} from {msg.from_}")
+
+                            # </250218-1802>
 
                         # if verbose:
                         #     print(f"Found bounce from: {msg.from_}")

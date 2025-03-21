@@ -48,6 +48,15 @@ count_total = 0
 count = 0
 count_deleted = 0
 
+    
+IGNORED_DOMAINS = {
+    'audience-engage.com',
+    'kaltura.com',
+    'kaltura.cloud',
+    'kaltura.email',
+    'kalturavideocloud.com',
+}
+
 
 # FUNCTIONS
 
@@ -105,7 +114,7 @@ for account_idx, email_account in enumerate(email_accounts, 1):
             # Common patterns for failed delivery notifications
             email_patterns = [
                 r'Original-Recipient:.*?rfc822;([^\s<>]+@[^\s<>]+)',
-                r'Final-Recipient:.*?rfc822;([^\s<>]+@[^\s<>]+)', 
+                r'Final-Recipient:.*?rfc822;([^\s<>]+@[^\s<>]+)',
                 r'(?:failed|undeliverable|returned).*?([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})',
                 r'[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}'
             ]
@@ -114,6 +123,10 @@ for account_idx, email_account in enumerate(email_accounts, 1):
                 matches = re.findall(pattern, body_text, re.IGNORECASE)
                 if matches:
                     email_in_body = matches[0].strip().lower()
+                    domain = email_in_body.split('@')[1] if '@' in email_in_body else ''
+                    if domain in IGNORED_DOMAINS:
+                        # print(f"\nℹ️  Ignoring bounced email from ignored domain: {domain}")
+                        continue
                     print(f"\nℹ️  Found bounced email address: {email_in_body}")
                     break
 
@@ -209,8 +222,8 @@ for account_idx, email_account in enumerate(email_accounts, 1):
                             WHERE email = ?
                         """, (ts_db, email_in_body))
                         conn.commit()
-
-                    print(f"\n✅ Moved {email_in_body} to email_old and set email_status to NULL.")
+                        if cur.rowcount > 0:
+                            print(f"\n✅ Moved {email_in_body} to email_old and set email_status to NULL.")
 
                     # Delete the email
                     mailbox.delete([msg.uid])
@@ -225,6 +238,7 @@ for account_idx, email_account in enumerate(email_accounts, 1):
             else:
                 print(f"\n❌ SKIPPED {msg.subject}")
                 continue
+
 
 
 
