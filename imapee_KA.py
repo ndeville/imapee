@@ -35,7 +35,7 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
 # First, we extract bounced emails from the IMAP mailboxes and delete specific emails
-import DB.blacklist_emails
+# import DB.blacklist_emails
 
 # GLOBALS
 

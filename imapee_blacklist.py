@@ -230,38 +230,44 @@ def get_bounced_emails(verbose=verbose):
 
 
                         if email_in_body:
+                            
+                            if 'spam' not in body_text.lower():
 
-                            bounced_emails.add(email_in_body)
+                                bounced_emails.add(email_in_body)
 
-                            # move email address to email_old
-                            with sqlite3.connect(DB_BTOB) as conn:
-                                cur = conn.cursor()
-                                cur.execute("""
-                                    UPDATE people 
-                                    SET dne = 1,
-                                        email_old = email,
-                                        email = NULL,
-                                        email_status = NULL,
-                                        updated = ?
-                                    WHERE email = ?
-                                """, (ts_db, email_in_body))
-                                conn.commit()
-                                if cur.rowcount > 0:
-                                    print(f"✅ Moved {email_in_body} to email_old and set email_status to NULL.")
+                                # move email address to email_old
+                                with sqlite3.connect(DB_BTOB) as conn:
+                                    cur = conn.cursor()
+                                    cur.execute("""
+                                        UPDATE people 
+                                        SET dne = 1,
+                                            email_old = email,
+                                            email = NULL,
+                                            email_status = NULL,
+                                            updated = ?
+                                        WHERE email = ?
+                                    """, (ts_db, email_in_body))
+                                    conn.commit()
+                                    if cur.rowcount > 0:
+                                        print(f"✅ Moved {email_in_body} to email_old and set email_status to NULL.")
 
-                            # Delete the email
-                            mailbox.delete([msg.uid])
-                            count_deleted += 1
-                            print(f"✅ DELETED: {msg.subject} from {msg.from_}")
+                                # # Delete the email
+                                # mailbox.delete([msg.uid])
+                                # count_deleted += 1
+                                # print(f"✅ DELETED: {msg.subject} from {msg.from_}")
+                                print(f"ℹ️  WOULD BE DELETED (CHECK): {msg.subject} from {msg.from_}:\n{body_text}\n\n")
 
-                            # </250218-1802>
+                                # </250218-1802>
 
-                        # if verbose:
-                        #     print(f"Found bounce from: {msg.from_}")
-                        #     print(f"Subject: {msg.subject}")
-                        #     print(f"Found emails: {valid_emails}")
+                            # if verbose:
+                            #     print(f"Found bounce from: {msg.from_}")
+                            #     print(f"Subject: {msg.subject}")
+                            #     print(f"Found emails: {valid_emails}")
 
-                        #     print("---")
+                            #     print("---")
+
+                        else:
+                            print(f"ℹ️  Spam-related bounced email:\n{msg.from_=}\n{msg.subject=}\n{body_text}")
 
                         if cleanup: # Delete bounced email notifications
                             print(f"ℹ️  Deleting bounced email notification from {msg.from_} - Subject: {msg.subject}")
