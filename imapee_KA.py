@@ -69,6 +69,7 @@ with sqlite3.connect(DB_BTOB) as conn:
     cur.execute("""
         SELECT user_name, password, imap_host, smtp_host
         FROM email_accounts
+        WHERE active = 1
     """)
     email_accounts = cur.fetchall()
     total_accounts = len(email_accounts)

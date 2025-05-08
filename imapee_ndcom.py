@@ -79,7 +79,13 @@ with MailBox(EMAIL_SERVER).login(EMAIL_ACCOUNT, PASSWORD) as mailbox:
 
         count += 1
 
-        print("\r" + str(count), end='')
+        # print("\r" + str(count), end='')
+
+        print(f"\n\n\n>>> {count:,}\n\n{msg.date_str=}")
+        print(f"{msg.from_=}")
+        print(f"{msg.to=}")
+        print(f"{msg.subject=}")
+        print(f"{msg.text=}")
 
 
         ### DELETE
