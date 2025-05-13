@@ -31,7 +31,7 @@ based on strings in To, From, Subject fields
 Strings are in /Users/nic/Python/imapee/data/delete_if_in_from.txt
 """
 
-v = True
+v = False
 
 EMAIL_ACCOUNT = os.getenv("EMAIL_ACCOUNT_ND")
 PASSWORD = os.getenv("PASSWORD_ND")
@@ -152,7 +152,7 @@ with MailBox(EMAIL_SERVER).login(EMAIL_ACCOUNT, PASSWORD) as mailbox:
 if __name__ == '__main__':
     print()
     print('-------------------------------')
-    print(f"Count Total Emails = {count} emails found")
+    print(f"Count Total Emails = {count:,} emails found")
     print(f"Count Emails Processed = {count_processed} emails processed")
     print(f"Count Mark As Read = {count_mark_as_read}")
     print(f"Count set_new_emails = {len(set_new_emails)}")
