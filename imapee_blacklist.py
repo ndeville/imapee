@@ -158,6 +158,7 @@ def get_bounced_emails(verbose=verbose):
                         "leads@outlook.com",
                         "@leadcarnivals.biz",
                         "spitfirestudios.com",
+                        "aiweeklydotcom@mail.beehiiv.com",
                         "storyblocks.com",
                     ]
                     if any(from_email in msg.from_ for from_email in from_emails):
