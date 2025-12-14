@@ -190,7 +190,7 @@ if test:
 
 if __name__ == '__main__':
     print()
-    print('-------------------------------')
+    print('\n\n\n-------------------------------')
     print(f"Count Total Emails = {count} emails found")
     print(f"Count Emails Processed = {count_processed} emails processed")
     print(f"Count Mark As Read = {count_mark_as_read}")
