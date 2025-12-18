@@ -16,7 +16,7 @@ def process_dmarc_reports():
     EMAIL_SERVER = os.getenv("EMAIL_SERVER_ND")
     DMARC_ADDRESSES = (
         "dmarc@nicolasdeville.com",
-        "dmarc_spaceship@nicolasdeville.com",
+        # "dmarc_spaceship@nicolasdeville.com",
         "dmarc_ionos@nicolasdeville.com"
     )
     OUTPUT_DIR = "/Users/nic/Python/imapee/dmarc"
