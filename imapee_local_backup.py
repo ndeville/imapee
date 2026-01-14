@@ -13,38 +13,21 @@ load_dotenv()
 
 # Config
 
-# ### IRENADEVILLE.COM
-# IMAP_SERVER = os.getenv("EMAIL_SERVER_ID")
+# ### DEVYER NICOLAS
+# IMAP_SERVER = os.getenv("IMAP_SERVER_DEVYER")
 # IMAP_PORT = 993
-# USERNAME = os.getenv("EMAIL_ACCOUNT_ID")
-# PASSWORD = os.getenv("PASSWORD_ID")
-# BACKUP_DIR = Path(os.getenv("BACKUP_DIR_ID"))
-# INBOX_FOLDER = 'Archive/2024'
-
-### DEVYER
-# IMAP_SERVER = os.getenv("EMAIL_SERVER_NIC_DEVYER")
-# IMAP_PORT = 993
-# USERNAME = os.getenv("EMAIL_ACCOUNT_NIC_DEVYER")
-# PASSWORD = os.getenv("PASSWORD_NIC_DEVYER")
-# BACKUP_DIR = Path('/Users/nic/eml/nicolas@devyer-ventures.com')
+# USERNAME = os.getenv("USERNAME_DEVYER")
+# PASSWORD = os.getenv("PASSWORD_DEVYER")
+# BACKUP_DIR = Path(os.getenv("BACKUP_DIR_DEVYER"))
 # INBOX_FOLDER = 'INBOX'
 
-
-### NICOLASDEVILLE.COM
-# USERNAME = os.getenv("EMAIL_ACCOUNT_ND")
-# PASSWORD = os.getenv("PASSWORD_ND")
-
-
-
-### DEVYER NICOLAS
-IMAP_SERVER = os.getenv("IMAP_SERVER_DEVYER")
+### n.deville@kaltura.cloud
+IMAP_SERVER = "imap.ionos.de"
 IMAP_PORT = 993
-USERNAME = os.getenv("USERNAME_DEVYER")
-PASSWORD = os.getenv("PASSWORD_DEVYER")
-BACKUP_DIR = Path(os.getenv("BACKUP_DIR_DEVYER"))
+USERNAME = "n.deville@kaltura.cloud"
+PASSWORD = 'J67kCJv.a9yhiM'
+BACKUP_DIR = Path('/Users/nic/eml/n.deville@kaltura.cloud')
 INBOX_FOLDER = 'INBOX'
-
-
 
 
 BATCH_SIZE = 500
@@ -163,7 +146,7 @@ uid: {uid}
     
     safe_subject = clean_filename(subject)
     date_prefix = date.strftime('%y%m%d')
-    filename = f"{date_prefix}_{safe_subject}.md"
+    filename = f"{uid}_{date_prefix}_{safe_subject}.md"
     (folder_path / filename).write_text(md_content, encoding='utf-8')
     
     # Attachments (date-prefixed)
