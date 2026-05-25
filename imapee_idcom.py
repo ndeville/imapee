@@ -28,7 +28,7 @@ count = 0
 """
 Clean mailbox of unwanted emails
 based on strings in To, From, Subject fields
-Strings are in /Users/nic/Python/imapee/data/delete_if_in_from.txt
+Strings are in /Users/nic/py/imapee/data/delete_if_in_from.txt
 """
 
 v = False

@@ -19,7 +19,7 @@ def process_dmarc_reports():
         # "dmarc_spaceship@nicolasdeville.com",
         "dmarc_ionos@nicolasdeville.com"
     )
-    OUTPUT_DIR = "/Users/nic/Python/imapee/dmarc"
+    OUTPUT_DIR = "/Users/nic/py/imapee/dmarc"
     VERBOSE = True
 
     os.makedirs(OUTPUT_DIR, exist_ok=True)
