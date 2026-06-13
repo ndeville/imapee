@@ -1,5 +1,5 @@
 from datetime import datetime
-print(f"Starting at {datetime.now().strftime('%H:%M:%S')}")
+print(f"\nStarting at {datetime.now().strftime('%H:%M:%S')}")
 import time
 start_time = time.time()
 
